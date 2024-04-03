@@ -7,6 +7,8 @@ import AccountItem from '~/components/AccountItem';
 import { SearchIcon } from '~/components/Icons';
 import styles from './Search.module.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useDebounce } from '~/hooks';
+import * as searchServices from '~/apiServices/searchServices';
 
 const cx = classNames.bind(styles);
 
@@ -15,24 +17,26 @@ const Search = () => {
     const [searchResult, setSearchResult] = useState([]);
     const [showResult, setShowResult] = useState(true);
     const [loading, setLoading] = useState(false);
+
+    const debounce = useDebounce(searchValue, 500);
+
     const inputRef = useRef();
     useEffect(() => {
-        if(!searchValue.trim())
-        {
+        if (!debounce.trim()) {
             setSearchResult([]);
-            return
+            return;
         }
-       
-    setLoading(true)
-        fetch(`https://tiktok.fullstack.edu.vn/api/users/search?q=${encodeURIComponent(searchValue)}&type=less`)
-            .then((res) => res.json())
-            .then((res) => {
-                setSearchResult(res.data);
-                setLoading(false)
-            }).catch(() =>{
-                setLoading(false)
-            });
-    }, [searchValue]);
+
+        
+        const fetchApi = async () => {
+            setLoading(true);
+            const result = await searchServices.search(debounce);
+            setSearchResult(result.data);
+            setLoading(false);
+        }
+
+       fetchApi();
+    }, [debounce]);
 
     const handleClear = () => {
         setSearchValue('');
@@ -51,7 +55,9 @@ const Search = () => {
                 <div className={cx('search-result')} tabIndex={-1} {...attrs}>
                     <PopperWrapper>
                         <h4 className={cx('search-title')}>Account</h4>
-                        {searchResult.map((item) => <AccountItem data={item} key={item.id} />)}
+                        {searchResult.map((item) => (
+                            <AccountItem data={item} key={item.id} />
+                        ))}
                     </PopperWrapper>
                 </div>
             )}
